@@ -3226,13 +3226,13 @@ impl Launcher {
             }
             foot = foot.child(side);
         }
-        // Horizon-Free: link to the fork's repository.
+        // Horizon Offline: link to the fork's repository.
         foot = foot.child(div().h(px(1.)).w_full().bg(t.rule).my(px(4.)));
         foot = foot.child(link(
-            "horizon-free",
-            "Horizon-Free",
+            "horizon-offline",
+            "Horizon Offline",
             "globe",
-            "https://github.com/0CYBER/horizon-free".to_string(),
+            "https://github.com/lupixele/horizon-offline".to_string(),
         ));
         if !self.links.sponsor.is_empty() {
             foot = foot.child(link(

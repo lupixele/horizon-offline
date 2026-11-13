@@ -2679,6 +2679,22 @@ fn account_sessions_until(
 /// token on its command line, as Mojang's launcher gives it; that command is never logged.
 pub fn java_player() -> Result<crate::java_launch::Player, String> {
     let mut accounts = Accounts::load();
+    if crate::backend::OFFLINE_PLAY {
+        let name = accounts
+            .selected()
+            .map(|a| a.name.clone())
+            .unwrap_or_else(|| "Player".to_string());
+        let uuid = accounts
+            .selected()
+            .map(|a| a.uuid.clone())
+            .unwrap_or_else(|| "00000000-0000-0000-0000-000000000000".to_string());
+        return Ok(crate::java_launch::Player {
+            name,
+            uuid,
+            token: "offline".to_string(),
+            xuid: String::new(),
+        });
+    }
     let player = java_player_with(
         &Endpoints::live(),
         client_id().as_deref(),
