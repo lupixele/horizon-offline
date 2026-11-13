@@ -538,13 +538,13 @@ impl Launcher {
                 &t,
             )
         };
-        // Horizon-free: the fork's repository, above the Discord button.
+        // Horizon-offline: the fork's repository, above the Discord button.
         if backend::OFFLINE_PLAY {
             foot = foot.child(div().flex().flex_col().mt(px(12.)).child(link(
-                "horizon-free",
-                "Horizon-Free",
+                "horizon-offline",
+                "Horizon Offline",
                 "globe-02",
-                "https://github.com/0CYBER/horizon-free".to_string(),
+                "https://github.com/lupixele/horizon-offline".to_string(),
             )));
         }
         if !self.links.discord.is_empty() {

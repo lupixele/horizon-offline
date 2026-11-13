@@ -11,8 +11,8 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 
 pub const REPO: &str = "horizon-rust/horizon";
-pub const LAUNCHER_REPO: &str = "0CYBER/horizon-free";
-/// Horizon-free: the game starts without a Microsoft account that owns it, in the window and on
+pub const LAUNCHER_REPO: &str = "lupixele/horizon-offline";
+/// Horizon-offline: the game starts without a Microsoft account that owns it, in the window and on
 /// the command line. Downloads still need an owner, so the game comes from the player's own install.
 pub const OFFLINE_PLAY: bool = true;
 /// Horizon-free: the partner/sponsor plate (Sculk's card in the sidebar and banner on the Servers
@@ -2287,6 +2287,13 @@ pub fn java_game(
     let minecraft = data_dir().join("minecraft");
     let id = mojang::relative(&game.minecraft)?;
     let natives = minecraft.join("natives").join(&id);
+    // The Java the game needs, which also runs a loader's installer.
+    let file = |id: &str| -> Result<PathBuf, String> {
+        Ok(minecraft
+            .join("versions")
+            .join(mojang::relative(id)?)
+            .join(format!("{id}.json")))
+    };
     // Each version and loader profile is fetched once; it then starts offline too.
     let downloaded = |id: &str| -> Result<PathBuf, String> {
         Ok(minecraft
@@ -2296,18 +2303,43 @@ pub fn java_game(
     };
     let marker = downloaded(&game.minecraft)?;
     if !marker.is_file() {
-        let listed = crate::minecraft_versions::load()?;
-        let version = listed.find(&game.minecraft)?;
-        download_version_for_owner(&version.id, &version.sha1, log)?;
-        fs::write(&marker, "").map_err(|e| format!("{}: {e}", marker.display()))?;
+        let v_file = file(&game.minecraft)?;
+        if v_file.is_file() {
+            let _ = fs::write(&marker, "");
+        } else if !OFFLINE_PLAY {
+            let listed = crate::minecraft_versions::load()?;
+            let version = listed.find(&game.minecraft)?;
+            download_version_for_owner(&version.id, &version.sha1, log)?;
+            fs::write(&marker, "").map_err(|e| format!("{}: {e}", marker.display()))?;
+        } else {
+            let mut resolved = false;
+            if let Some(folders) = sources::Folders::current() {
+                let known = sources::known_folders(sources::Os::current(), &folders);
+                for (_name, base) in known {
+                    let source_ver = base.join("versions").join(&game.minecraft);
+                    let source_json = source_ver.join(format!("{}.json", game.minecraft));
+                    let source_jar = source_ver.join(format!("{}.jar", game.minecraft));
+                    if source_json.is_file() {
+                        let target_dir = minecraft.join("versions").join(&game.minecraft);
+                        let _ = fs::create_dir_all(&target_dir);
+                        let _ = fs::copy(&source_json, target_dir.join(format!("{}.json", game.minecraft)));
+                        if source_jar.is_file() {
+                            let _ = fs::copy(&source_jar, target_dir.join(format!("{}.jar", game.minecraft)));
+                        }
+                        let _ = fs::write(&marker, "");
+                        resolved = true;
+                        break;
+                    }
+                }
+            }
+            if !resolved {
+                return Err(format!(
+                    "Minecraft version {} was not found locally. To play offline, ensure {}.json is in minecraft/versions/{}/.",
+                    game.minecraft, game.minecraft, game.minecraft
+                ));
+            }
+        }
     }
-    // The Java the game needs, which also runs a loader's installer.
-    let file = |id: &str| -> Result<PathBuf, String> {
-        Ok(minecraft
-            .join("versions")
-            .join(mojang::relative(id)?)
-            .join(format!("{id}.json")))
-    };
     let vanilla = crate::java_launch::read(&file(&game.minecraft)?)?;
     let need = crate::java::Need::of(&crate::java_launch::resolve(vanilla, &minecraft)?);
     let found = crate::java::pick(
@@ -2328,15 +2360,19 @@ pub fn java_game(
         start = loader.kind.profile_id(&loader.version, &game.minecraft);
         let marker = downloaded(&start)?;
         if !marker.is_file() {
-            start = crate::loaders::install(
-                loader,
-                &game.minecraft,
-                &minecraft,
-                &runtime.java(),
-                &get_bytes,
-                log,
-            )?;
-            fs::write(downloaded(&start)?, "").map_err(|e| e.to_string())?;
+            if file(&start)?.is_file() {
+                let _ = fs::write(&marker, "");
+            } else {
+                start = crate::loaders::install(
+                    loader,
+                    &game.minecraft,
+                    &minecraft,
+                    &runtime.java(),
+                    &get_bytes,
+                    log,
+                )?;
+                fs::write(downloaded(&start)?, "").map_err(|e| e.to_string())?;
+            }
         }
     }
     let version =

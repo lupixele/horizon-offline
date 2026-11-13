@@ -267,22 +267,14 @@ jobs:
             while read -r f; do sha256sum "$f"; done > SHA256SUMS.txt
           cat SHA256SUMS.txt
           {
-            echo "Horizon Launcher (free) $VERSION, built automatically from main."
+            echo "Horizon Offline $VERSION, built automatically from main."
             echo
-            echo "Changes:"
-            echo "- Rebased on the latest upstream."
-            echo "- Offline play enabled by default, in the window and the CLI: no Microsoft account that owns the game is required to launch."
-            echo "- No Microsoft sign-in plates in the interface."
-            echo "- Horizon-Free button in the sidebar, above the Discord button."
-            echo "- Launcher self-updates from 0CYBER/horizon-free (tags launcher@X.Y.Z)."
-            echo
-            echo "Fork changes in this update:"
-            echo "- The partner/sponsor plate (Sculk) is off by default; it no longer appears in the sidebar or on the Servers page."
-            echo "- Settings > Game has the game folder again (saves, options.txt and packs), with Open, Change and Use the default, and the Minecraft folder beside it: Play's folder menu picks the same one."
-            echo "- Skins work for the game's own offline name too (issue #14): pick one with the pencil on its chip in Settings > Account, or with Skin: on the top bar's name list. Offline names keep their own skins and capes, and a new name keeps the look."
-            echo "- The Wardrobe and Shop tabs stay out while no Microsoft account is signed in: cosmetics belong to an account on Horizon's service, and this build has no Microsoft sign-in, so the tabs only led to a sign-in button that did nothing."
-            echo
-            echo "The fork starts the game from your own assets, that you download before-hand in any compatible java launcher."
+            echo "Changes in this build:"
+            echo "- Branded as Horizon Offline (fork of Horizon-Free)."
+            echo "- Offline Minecraft 1.21.11 support: launches local 1.21.11 instances without requiring online Microsoft account owner sessions."
+            echo "- Offline player token and local version directory scanner."
+            echo "- Offline play enabled by default, in the window and the CLI."
+            echo "- Self-updates configured for lupixele/horizon-offline."
           } > "$RUNNER_TEMP/notes.md"
       - name: Publish ${{ needs.meta.outputs.tag }}
         env:
@@ -293,5 +285,5 @@ jobs:
           # `-R`: this job has no checkout, and `gh` would otherwise look for a repository here.
           # The newest launcher release is also the one the repository page shows as latest.
           gh release create "$TAG" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "Horizon Launcher (free) $VERSION" \
+            --title "Horizon Offline $VERSION" \
             --notes-file "$RUNNER_TEMP/notes.md" --latest dist/*
