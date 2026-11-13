@@ -833,29 +833,33 @@ impl Game<'_> {
             self.mod_mob_layer_geometry(m, Some(who), alpha as f32, camera, packed, out);
         }
         // LivingEntity.isCurrentlyGlowing: the Glowing effect.
-        let vanilla = self
-            .potions
-            .effects
-            .get("glowing")
-            .map(|_| super::glowing::team_color(self.own_team()));
-        let id = u32::try_from(self.own_entity_id()).unwrap_or(0);
-        if let Some(color) = self.entity_outline(id, "minecraft:player", vanilla) {
-            // LivingEntityRenderer.getRenderType: an invisible glowing body
-            // still draws its outline.
-            if !body {
-                let mut silhouette = Vec::new();
-                horizon_client::mobs::render::render(
-                    m,
-                    alpha as f32,
-                    camera,
-                    &lookup,
-                    packed,
-                    self.res.mob_data(),
-                    &mut silhouette,
-                );
-                self.mark_outline(&silhouette, color);
+        // In first person (own_body_in_view is false), the local player's own body and
+        // elytra should never draw a glowing outline across the camera.
+        if self.own_body_in_view() {
+            let vanilla = self
+                .potions
+                .effects
+                .get("glowing")
+                .map(|_| super::glowing::team_color(self.own_team()));
+            let id = u32::try_from(self.own_entity_id()).unwrap_or(0);
+            if let Some(color) = self.entity_outline(id, "minecraft:player", vanilla) {
+                // LivingEntityRenderer.getRenderType: an invisible glowing body
+                // still draws its outline.
+                if !body {
+                    let mut silhouette = Vec::new();
+                    horizon_client::mobs::render::render(
+                        m,
+                        alpha as f32,
+                        camera,
+                        &lookup,
+                        packed,
+                        self.res.mob_data(),
+                        &mut silhouette,
+                    );
+                    self.mark_outline(&silhouette, color);
+                }
+                self.mark_outline(&out[start..], color);
             }
-            self.mark_outline(&out[start..], color);
         }
     }
     /// `extractEntityInInventoryFollowsMouse`: the player in the box
