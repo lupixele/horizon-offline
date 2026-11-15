@@ -64,7 +64,13 @@ pub fn resources(bin: &str) {
         if cfg!(windows) && target_env == "gnu" {
             unsafe { std::env::set_var("CARGO_MANIFEST_DIR", original_manifest_dir) };
         }
-        result.expect("embedding Horizon's icon in Windows resources");
+        if let Err(e) = result {
+            if std::env::var_os("CI").is_none() {
+                println!("cargo:warning=building without Horizon's icon: {e}");
+                return;
+            }
+            panic!("embedding Horizon's icon in Windows resources: {e}");
+        }
     }
 }
 
